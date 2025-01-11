@@ -92,26 +92,21 @@ def enumerate_subdomains(domain):
     try:
         print("\n[+] Enumerating Subdomains from DNS records...")
         
-        # DNS kayıt türleri
         record_types = ['A', 'AAAA', 'CNAME', 'MX', 'NS', 'TXT', 'SRV', 'SOA']
         found_subdomains = set()
 
-        # Ana domain'in DNS kayıtlarını kontrol et
         for record_type in record_types:
             try:
                 answers = dns.resolver.resolve(domain, record_type)
                 for answer in answers:
-                    # MX kayıtlarında exchange alanını al
                     if record_type == 'MX':
                         subdomain = str(answer.exchange).rstrip('.')
                         if domain in subdomain:
                             found_subdomains.add((subdomain, str(answer), record_type))
-                    # NS kayıtlarında name server'ı al
                     elif record_type == 'NS':
                         subdomain = str(answer).rstrip('.')
                         if domain in subdomain:
                             found_subdomains.add((subdomain, str(answer), record_type))
-                    # Diğer kayıtlar için direkt cevabı al
                     else:
                         subdomain = str(answer).rstrip('.')
                         if domain in subdomain and subdomain != domain:
@@ -121,7 +116,6 @@ def enumerate_subdomains(domain):
             except Exception as e:
                 print(f"Error checking {record_type} records: {str(e)}")
 
-        # Wildcard DNS kontrolü
         try:
             random_sub = f"random{int(time.time())}.{domain}"
             dns.resolver.resolve(random_sub, 'A')
@@ -129,7 +123,6 @@ def enumerate_subdomains(domain):
         except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer):
             pass
 
-        # Sonuçları göster
         if found_subdomains:
             print("\nFound Subdomains:")
             for subdomain, ip, record_type in sorted(found_subdomains):
@@ -143,9 +136,8 @@ def enumerate_subdomains(domain):
 def find_emails(domain):
     try:
         print("\n[+] Searching for email addresses...")
-        emails = set()  # Tekrar eden mailleri önlemek için set kullanıyoruz
+        emails = set() 
         
-        # Bing arama sorguları (dorklar)
         dorks = [
             f'@{domain} email',
             f'@{domain} contact',
@@ -161,10 +153,8 @@ def find_emails(domain):
             f'inurl:"about" site:{domain}'
         ]
 
-        # Email regex pattern
         email_pattern = rf'[A-Za-z0-9._%+-]+@{domain}'
         
-        # Her dork için Bing araması yap
         for dork in dorks:
             try:
                 print(f"Searching: {dork}")
@@ -176,18 +166,15 @@ def find_emails(domain):
                 
                 response = requests.get(url, headers=headers, timeout=10)
                 
-                # Bulunan emailleri regex ile çıkar
                 found_emails = re.findall(email_pattern, response.text)
-                emails.update(found_emails)  # Yeni mailleri ekle
+                emails.update(found_emails)  
                 
-                # Rate limiting - Bing'in engellemesini önlemek için
                 time.sleep(2)
                 
             except Exception as e:
                 print(f"Error in dork search '{dork}': {str(e)}")
                 continue
         
-        # Sonuçları göster
         if emails:
             print("\nFound email addresses:")
             for email in sorted(emails):
@@ -205,15 +192,12 @@ def detect_tech_stack(domain):
         response = requests.get(f"https://{domain}", timeout=10)
         headers = response.headers
         
-        # Server teknolojisi
         if 'Server' in headers:
             print(f"Web Server: {headers['Server']}")
             
-        # Framework detection from headers
         if 'X-Powered-By' in headers:
             print(f"Powered By: {headers['X-Powered-By']}")
             
-        # Basic CMS detection
         page_content = response.text.lower()
         if 'wordpress' in page_content:
             print("CMS: WordPress detected")
@@ -303,7 +287,6 @@ def port_scanner(domain):
     try:
         print("\n[+] Scanning common ports...")
         nm = nmap.PortScanner()
-        # En yaygın 20 portu tara
         result = nm.scan(domain, '20-25,53,80,110,143,443,465,587,993,995,3306,3389,5432,8080,8443')
         
         for host in nm.all_hosts():
@@ -339,7 +322,6 @@ def detect_os(domain):
     try:
         print("\n[+] Attempting OS detection...")
         nm = nmap.PortScanner()
-        # OS detection scan
         nm.scan(domain, arguments='-O')
         
         for host in nm.all_hosts():
